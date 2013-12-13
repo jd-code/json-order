@@ -347,8 +347,16 @@ int main (int nb, char ** cmde) {
 	if (nomorearg && (cmde[i][0]=='-')) continue;	// it'll be read as a file later on
 	if (strcmp (cmde[i], "--") == 0) {
 	    nomorearg = true;
-	} else if (strcmp (cmde[i], "-debug") == 0) {
+	} else if ( (strcmp (cmde[i],	"-debug") == 0) || 
+		    (strcmp (cmde[i]+1,	"-debug") == 0)
+		  ) {
 	    jsonData::debugjson = true;
+	} else if ( (strcmp (cmde[i],	"-version") == 0) || 
+		    (strcmp (cmde[i]+1,	"-version") == 0)
+		  ) {
+	    cout << "json-order 0.0.1 - (c)2013 Jean-Daniel Pauget" << endl;
+	} else {
+	    cerr << "unkown option : " << cmde[i] << endl;
 	}
     }
 
