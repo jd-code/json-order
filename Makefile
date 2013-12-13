@@ -1,6 +1,5 @@
 
-all:
-	json-order
+all: json-order
 
 clean:
 	rm json-order
