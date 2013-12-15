@@ -344,9 +344,9 @@ int main (int nb, char ** cmde) {
     bool nomorearg = false;
 
     for (i=1 ; i<nb ; i++) {
-	if (nomorearg && (cmde[i][0]=='-')) continue;	// it'll be read as a file later on
+	if (cmde[i][0]!='-') continue;	// it'll be read as a file later on
 	if (strcmp (cmde[i], "--") == 0) {
-	    nomorearg = true;
+	    break;
 	} else if ( (strcmp (cmde[i],	"-debug") == 0) || 
 		    (strcmp (cmde[i]+1,	"-debug") == 0)
 		  ) {
@@ -360,7 +360,6 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    nomorearg = false;
     for (i=1 ; i<nb ; i++) {
 	if (nomorearg || (cmde[i][0]!='-')) {
 	    ifstream fin(cmde[i]);
