@@ -34,12 +34,12 @@ fi
 
 if [ '(' E"$END1" = "Ejson" ')' -a '('  E"$END2" = "Ejson" ')' ]
 then
-    CORE1=`echo "$1" | rev | cut -d/ -f1 | rev`
-    CORE2=`echo "$2" | rev | cut -d/ -f1 | rev`
+    CORE1=`echo "$1" | rev | cut -d/ -f1-4 | rev | tr '/' '_' `
+    CORE2=`echo "$2" | rev | cut -d/ -f1-4 | rev | tr '/' '_' `
     TMP1=`mktemp /tmp/"$CORE1".XXXXXXXX`
     TMP2=`mktemp /tmp/"$CORE2".XXXXXXXX`
-    json-order "$1" > "$TMP1"
-    json-order "$2" > "$TMP2"
+    ( echo "// ${1}" ; json-order "$1" ) > "$TMP1"
+    ( echo "// ${2}" ; json-order "$2" ) > "$TMP2"
     "$DIFF" "$TMP1" "$TMP2"
 else
     "$DIFF" "$1" "$2"
