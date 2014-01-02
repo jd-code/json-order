@@ -18,6 +18,8 @@ class jsonData {
     string s;
     double d;
 static bool debugjson;
+static bool impartial;
+static int nberr;
 
     jsonData (void) : d(0.0) {}
     jsonData (double d) : d(d) {}
@@ -59,6 +61,7 @@ class jsonNumber : public jsonData {
 	if (debugjson) cerr << "jsonNumber: " << d << endl;
     }
     virtual void out (ostream &cout) const {
+	cout.precision(20);
 	cout << d;
     }
 };
@@ -70,6 +73,16 @@ class jsonString : public jsonData {
     }
     virtual void out (ostream &cout) const {
 	cout << '"' << s << '"';
+    }
+};
+
+class jsonNull : public jsonData {
+  public:
+    jsonNull () {
+	if (debugjson) cerr << "jsonNull" << endl;
+    }
+    virtual void out (ostream &cout) const {
+	cout << "null";
     }
 };
 
@@ -186,6 +199,7 @@ jsonData * json_parse (istream &cin) {
 		    if (!cin) {
 			pj = new jsonString (s);
 cerr << "short file after string s=" << s <<endl;
+jsonData::nberr ++;
 			break;
 		    }
 		    switch (c) {
@@ -201,7 +215,8 @@ cerr << "short file after string s=" << s <<endl;
 			default:
 			    pj = new jsonString (s);
 			    cin.unget();
-cerr << "dubious character " << c << " after string s=" << s << endl;
+cerr << "dubious character \"" << c << "\" after string s=" << s << endl;
+jsonData::nberr ++;
 			    break;
 		    }
 		    
@@ -222,11 +237,13 @@ cerr << "dubious character " << c << " after string s=" << s << endl;
 			}
 			if (!cin) {
 cerr << "short file while in brace ({)" << endl;
+jsonData::nberr ++;
 			break;
 			}
 			if (c == ',') continue;
 			if (c == '}') break;
-cerr << "dubious character " << c << "while in brace ({)" << endl;
+cerr << "dubious character \"" << c << "\" while in brace ({)" << endl;
+jsonData::nberr ++;
 		    }
 		    pj = pjb;;
 		  }
@@ -245,16 +262,36 @@ cerr << "dubious character " << c << "while in brace ({)" << endl;
 			}
 			if (!cin) {
 cerr << "short file while in brace ({)" << endl;
+jsonData::nberr ++;
 			    break;
 			}
 			if (c == ',') continue;
 			if (c == ']') break;
-cerr << "dubious character " << c << "while in bracket ([)" << endl;
+cerr << "dubious character \"" << c << "\" while in bracket ([)" << endl;
+jsonData::nberr ++;
 		    }
 		    pj = pjb;;
 		  }
 		break;
 
+	    case 'n':	// null ?
+		if (cin) {
+		    c = cin.get();
+		    if ((c == 'u') && cin) {
+			c = cin.get();
+			if ((c == 'l') && cin) {
+			    c = cin.get();
+			    if ((c == 'l') && cin) {
+				pj = new jsonNull ();
+			    }
+			}
+		    }
+		}
+		if (pj == NULL) {
+cerr << "dubious char \"" << c << "\" while trying to read boolean 'true'" << endl;
+jsonData::nberr ++;
+		}
+		break;
 	    case 't':	// true ?
 		if (cin) {
 		    c = cin.get();
@@ -269,7 +306,8 @@ cerr << "dubious character " << c << "while in bracket ([)" << endl;
 		    }
 		}
 		if (pj == NULL) {
-cerr << "dubious char " << c << " while trying to read boolean 'true'" << endl;
+cerr << "dubious char \"" << c << "\" while trying to read boolean 'true'" << endl;
+jsonData::nberr ++;
 		}
 		break;
 	    case 'f':	// false ?
@@ -289,7 +327,8 @@ cerr << "dubious char " << c << " while trying to read boolean 'true'" << endl;
 		    }
 		}
 		if (pj == NULL) {
-cerr << "dubious char " << c << " while trying to read boolean 'false'" << endl;
+cerr << "dubious char \"" << c << "\" while trying to read boolean 'false'" << endl;
+jsonData::nberr ++;
 		}
 		break;
 	    case ']':
@@ -299,20 +338,20 @@ cerr << "dubious char " << c << " while trying to read boolean 'false'" << endl;
 		break;
 		
 	    default:
-		if (isdigit (c)) {
+		if (isdigit (c) || (c=='-') || (c=='+') || (c=='.')) {
 		    string s;
 		    s += c;
 		    while (cin) {
 			c = cin.get();
-			if (isdigit (c)) {
+			if (isdigit (c) ||  (c=='-') || (c=='+') || (c=='.') || (c=='e')) {
 			    s += c;
 			    continue;
 			}
 			if (isspace (c)) {
-			    pj = new jsonNumber (atoi(s.c_str()));
+			    pj = new jsonNumber (atof(s.c_str()));
 			    break;
 			}
-			pj = new jsonNumber (atoi(s.c_str()));
+			pj = new jsonNumber (atof(s.c_str()));
 			switch (c) {
 			    case ',':
 			    case '}':
@@ -321,13 +360,15 @@ cerr << "dubious char " << c << " while trying to read boolean 'false'" << endl;
 				break;
 			    default:
 				cin.unget();
-cerr << "dubious char " << c << " while trying to read number" << s << endl;
+cerr << "dubious char \"" << c << "\" while trying to read number " << s << endl;
+jsonData::nberr ++;
 				break;
 			}
 			break;
 		    }
 		} else {
-cerr << "dubious char " << c << " in the middle of nowhere" << endl;
+cerr << "dubious char \"" << c << "\" in the middle of nowhere" << endl;
+jsonData::nberr ++;
 		}
 		break;
 	} // switch (c)
@@ -338,6 +379,9 @@ cerr << "dubious char " << c << " in the middle of nowhere" << endl;
 }
 
 bool jsonData::debugjson = false;
+bool jsonData::impartial = false;
+bool nooutput = false;
+int jsonData::nberr = 0;
 
 int main (int nb, char ** cmde) {
     int i;
@@ -347,6 +391,14 @@ int main (int nb, char ** cmde) {
 	if (cmde[i][0]!='-') continue;	// it'll be read as a file later on
 	if (strcmp (cmde[i], "--") == 0) {
 	    break;
+	} else if ( (strcmp (cmde[i],	"-impartial") == 0) || 
+		    (strcmp (cmde[i]+1,	"-impartial") == 0)
+		  ) {
+	    jsonData::impartial = true;
+	} else if ( (strcmp (cmde[i],	"-nooutput") == 0) || 
+		    (strcmp (cmde[i]+1,	"-nooutput") == 0)
+		  ) {
+	    nooutput = true;
 	} else if ( (strcmp (cmde[i],	"-debug") == 0) || 
 		    (strcmp (cmde[i]+1,	"-debug") == 0)
 		  ) {
@@ -355,24 +407,41 @@ int main (int nb, char ** cmde) {
 		    (strcmp (cmde[i]+1,	"-version") == 0)
 		  ) {
 	    cout << "json-order 0.0.1 - (c)2013 Jean-Daniel Pauget" << endl;
+	} else if ( (strcmp (cmde[i],	"-help") == 0) || 
+		    (strcmp (cmde[i]+1,	"-help") == 0)
+		  ) {
+	    cout << "json-order [-debug] [-impartial] [-nooutput] [--] [... filenames ...]" << endl
+		 << endl;
+	    exit (0);
 	} else {
 	    cerr << "unkown option : " << cmde[i] << endl;
 	}
     }
 
+    int nbglobalerr = 0;
+    int nbfile = 0;
+
     for (i=1 ; i<nb ; i++) {
 	if (nomorearg || (cmde[i][0]!='-')) {
+	    nbfile ++;
 	    ifstream fin(cmde[i]);
 	    if (!fin) {
 		int e = errno;
 		cerr << "could not open " << cmde[i] << " : " << strerror(e) << endl;
 		continue;
 	    }
+	    jsonData::nberr = 0;
 	    jsonData *pj = json_parse (fin);
 	    if (pj != NULL) {
-		cout << *pj << endl;
+		if (!nooutput)
+		    cout << *pj << endl;
 	    } else {
 		cerr << "could not parse anything from " << cmde[i] << endl;
+		jsonData::nberr ++;
+	    }
+	    if (jsonData::impartial && (jsonData::nberr != 0)) {
+		cerr << jsonData::nberr << " errors parsing " << cmde[i] << endl;
+		nbglobalerr ++;
 	    }
 	} else {
 	    if (strcmp (cmde[i], "--") == 0) {
@@ -380,13 +449,23 @@ int main (int nb, char ** cmde) {
 	    }
 	}
     }
-    if (nb == 1) {
+    if (nbfile == 0) {
+	jsonData::nberr = 0;
 	jsonData *pj = json_parse (cin);
 	if (pj != NULL) {
-	    cout << *pj << endl;
+	    if (!nooutput)
+		cout << *pj << endl;
 	} else {
 	    cerr << "could not parse anything from stdin" << endl;
+	    jsonData::nberr ++;
 	}
+	if (jsonData::impartial && (jsonData::nberr != 0)) {
+	    cerr << jsonData::nberr << " errors parsing stdin" << endl;
+	    nbglobalerr ++;
+	}
+    }
+    if (jsonData::impartial && (nbglobalerr != 0)) {
+	return 1;
     }
     return 0;
 }

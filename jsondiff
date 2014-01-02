@@ -1,0 +1,47 @@
+#!/bin/bash
+
+function usage {
+    echo "usage :"
+    echo "   jsondiff file1 file2"
+}
+
+if [ ! "${1}" ]
+then
+    usage
+    exit 1
+fi
+
+if [ ! "${2}" ]
+then
+    usage
+    exit 1
+fi
+
+
+
+END1=`echo "$1" | rev | cut -d. -f1 | rev`
+END2=`echo "$2" | rev | cut -d. -f1 | rev`
+ENDOURSELVES=`echo $0 | rev | cut -b1-7 | rev`
+
+if [ E"${ENDOURSELVES}" = "Evimdiff" ]
+then
+    DIFF=vimdiff
+else
+    DIFF=diff
+fi
+
+
+
+if [ '(' E"$END1" = "Ejson" ')' -a '('  E"$END2" = "Ejson" ')' ]
+then
+    CORE1=`echo "$1" | rev | cut -d/ -f1 | rev`
+    CORE2=`echo "$2" | rev | cut -d/ -f1 | rev`
+    TMP1=`mktemp /tmp/"$CORE1".XXXXXXXX`
+    TMP2=`mktemp /tmp/"$CORE2".XXXXXXXX`
+    json-order "$1" > "$TMP1"
+    json-order "$2" > "$TMP2"
+    "$DIFF" "$TMP1" "$TMP2"
+else
+    "$DIFF" "$1" "$2"
+fi
+
